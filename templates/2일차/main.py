@@ -1,31 +1,42 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template
+from flask_sock import Sock
 
 app = Flask(__name__)
+sock = Sock(app)
+
 
 @app.route("/")
 def index():
-    # TODO: index.html을 반환해주세요
-    return render_template()
+    return render_template("sentiment.html")
 
-@app.route("/survey")
-def survey():
-    # 설문 문항
-    questions = [
-        "오늘 기분은 어떠신가요?",
-        "1일차 수업은 이해하기 쉬웠나요?",
-        "앞으로 배우고 싶은 내용은 무엇인가요?"
-    ]
 
-    # TODO: servey.html을 반환하면서 questions를 넘겨주세요
-    return render_template()
+@sock.route("/ws")
+def websocket(ws):
+    while True:
+        text = ws.receive()
+        if text is None:
+            break
 
-@app.route("/result", methods=["GET"])
-def result():
-    # TODO: query string에서 답변 받기 - getlist 사용
-    # answers = ???
+        positives = ["happy", "good", "love", "great"]  # 긍정
+        negatives = ["fuck", "sad", "bad", "angry"]  # 부정
 
-    # TODO: result.html을 반환하면서 answers를 넘겨주세요
-    return render_template()
+        # for pw in positives:
+        #     if pw in text:
+        #         sentiment = "긍정 🙂‍"
+        if any(pw in text.lower() for pw in positives):
+            sentiment = "긍정 🙂‍"
+
+        # for nw in negatives:
+        #     if nw in text:
+        #         sentiment = "부정 😥"
+        elif any(nw in text.lower() for nw in negatives):
+            sentiment = "부정 😥"
+
+        else:
+            sentiment = "중립 🍀"
+
+        ws.send(sentiment)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
